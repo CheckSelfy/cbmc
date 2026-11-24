@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -210,11 +211,38 @@ unsigned long long fio_crc64(const unsigned char *buffer, unsigned long length)
 	return crc;
 }
 
+bool is_valid(const char* s, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    if (s[i] != ' ' && (s[i] < 'a' || s[i] > 'z')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool are_equal(const char* s1, const char* s2, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    if (s1[i] != s2[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void check_unique() {
   char buf1[STRLEN+1];
   buf1[STRLEN] = 0;
   char buf2[STRLEN+1];
   buf2[STRLEN] = 0;
+
+  __CPROVER_assume(is_valid(buf1, STRLEN));
+  __CPROVER_assume(is_valid(buf2, STRLEN));
+  __CPROVER_assume(!are_equal(buf1, buf2, STRLEN));
+
+  unsigned long long buf1_crc = fio_crc64(buf1, STRLEN);
+  unsigned long long buf2_crc = fio_crc64(buf2, STRLEN);
+
+  assert(buf1_crc != buf2_crc);
   //TODO: здесь нужно написать свои ограничения, которые гарантируют следующее:
   //TODO: если в буферах buf1 и buf2 разные строки и каждый их символ либо пробел, либо буква от `a` (латинская) до `z`
   //TODO: то crc64 хэши этих буферов различны
@@ -224,9 +252,25 @@ void check_unique() {
 void check_decode() {
   char buf[STRLEN+1];
   buf[STRLEN] = 0;
+
+  __CPROVER_assume(is_valid(buf, STRLEN));
+  unsigned long long buf_crc = fio_crc64(buf, STRLEN);
+
+  assert(buf_crc != HASH);
   //TODO: здесь нужно написать свои ограничения, которые позволят инвертировать хэш `HASH`:
   //TODO: известно, что в захешированном сообщении каждый символ либо пробел, либо буква от `a` (латинская) до `z`
   //TODO: сообщение должно быть помещено в буфер buf для проверки
   //TODO: чтобы проверить правильность своих ограничений, попробуйте написать отдельный код, в котором захэшировать своё сообщение, и выполните его как обычную C программу
   //TODO: затем попробуйте обратить полученный хэш при помощи своих ограничений и CBMC
 }
+
+
+// ~/Study/mathlog/cbmc-2026 master* ❯ cbmc crc64.c --function check_decode -DSTRLEN=11 --trace > res                            
+// ~/Study/mathlog/cbmc-2026 master* ❯ cat res
+// ... 
+// State 13 file crc64.c function check_decode line 253 thread 0
+// ----------------------------------------------------
+//   buf={ 'w', 'o', 'r', 'l', 'd', ' ', 'h', 'e', 'l', 'l', 'o', 0 } ({ 01110111, 01101111, 01110010, 01101100, 01100100, 00100000, 01101000, 01100101, 01101100, 01101100, 01101111, 00000000 })
+// ...
+//
+// Я проверил в crc64_test что эта строка правда является оригиналом.

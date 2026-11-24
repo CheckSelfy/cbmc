@@ -8,9 +8,15 @@ bool have_different_signs(int x, int y) {
   return x >= 0 && y < 0 || x < 0 && y >= 0;
 }
 
+
+//          bit_sign
+// x      = 1....
+// y      = 0....
+// x ^ y  = 1....
+
 bool have_different_signs_optimized(int x, int y) {
   //TODO: нельзя использовать: &&, ||, ?: (тернарный оператор условия), for, if
-  return true;
+  return (x ^ y) < 0;
 }
 
 void check1(int x, int y) {
@@ -21,9 +27,18 @@ int abs(int x) {
   return x > 0 ? x : -x;
 }
 
+// x    = 01110111
+// mask = 00000000 = 0
+// res  = 01110111
+
+// x    = 10000000
+// mask = 11111111 = -1
+// (x + mask) ^ mask = inv(x - 1) = -x
+
 int abs_optimized(int x) {
   //TODO: нельзя использовать: ?: (тернарный оператор условия), for, if
-  return 0;
+  int mask = x >> (sizeof(x) * 8 - 1); 
+  return (x + mask) ^ mask;
 }
 
 void check2(int c) {
@@ -44,9 +59,17 @@ bool is_power_of_two(unsigned int x) {
   }
 }
 
+// v           = 000100000
+// v-1         = 000011111
+// (v & (v-1)) = 000000000 = false
+
+// v           = 000100100
+// v-1         = 000100011
+// (v & (v-1)) = 000100000 = true
+
 bool is_power_of_two_optimized(unsigned int v) {
   //TODO: нельзя использовать: ?: (тернарный оператор условия), for, if
-  return true;
+  return v && !(v & (v - 1));
 }
 
 void check3(int c) {
